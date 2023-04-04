@@ -227,7 +227,10 @@ class Histb_serial(object):
         # The algorithm to calc the key is currently unknown, hardcode it temporarily
         global g_pkt_recv, g_ret_data
         i = 0
-        decrypt_payload = b'\x01\x00\x09\xBB\x96\x00\x09\xBB\x96'
+        # Hubei HC2910
+        # decrypt_payload = b'\x01\x00\x09\xBB\x96\x00\x09\xBB\x96'
+        # Henan HC2910
+        decrypt_payload = b'\x01\x00\x07\xf8\x2e\x00\x07\xf8\x2e'
         while not g_pkt_recv.is_set() and i < self.MAX_RETRY_TIMES:
             pkt = Packet(0xCE, 0, decrypt_payload)
             self.reader_thr.write(bytes(pkt))
@@ -236,7 +239,7 @@ class Histb_serial(object):
             i+=1
         if not g_pkt_recv.is_set(): # Timeout
             raise ValueError("Timeout")
-        assert(g_ret_data.payload == b'\x04\x00\x00\x00\x00') # Decrypt success
+        assert(g_ret_data.payload.startswith(b'\x04\x00')) # Decrypt success
         g_pkt_recv.clear()
         return None
 
@@ -283,6 +286,7 @@ def cli(fastboot_image, debug, terminal):
         term = serial.tools.miniterm.Miniterm(dev.dev, eol="lf")
         term.set_tx_encoding("utf-8")
         term.set_rx_encoding("utf-8")
+        click.echo(dev.dev.read_all())
         term.start()
         term.join()
     return None
