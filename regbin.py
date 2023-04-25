@@ -28,6 +28,7 @@ Can be seen as one row in the xlsm.
     # 31 at maximum
     start_bit: int
     # minus 1 (31 at maximum)
+    # That is, the actual bits length is the value here plus 1, because writting 0 bit obviously makes no sense
     write_bits_cnt: int
 
     def __len__(self):
@@ -83,7 +84,7 @@ padding: DWORD
         addr_base = base[0]
         payload_len = base[1]
 
-        # constant part
+        # dynamic part
         # remove trailing garbage
         dyn_part = dyn_part[0:payload_len]
 
@@ -127,7 +128,7 @@ Can be seen as a page in the xlsm
         _unk_field = base[0]
         payload_len = base[1]
 
-        # constant part
+        # dynamic part
         # remove trailing garbage
         dyn_part = dyn_part[0:payload_len]
 
