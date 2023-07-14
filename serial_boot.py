@@ -9,6 +9,7 @@ import serial.tools.miniterm
 import struct
 import threading
 import tqdm
+from enum import IntEnum
 
 g_pkt_recv = threading.Event() # indicate a packet is received, should be cleared before new packet arrival
 g_ret_data = None # data returned by thread, is set by Packet.process()
@@ -91,6 +92,7 @@ class Packet(object):
 class Histb_serial(object):
     INTERVAL = .2 # interval between command resending
     MAX_RETRY_TIMES = 10
+    crc = crcmod.mkCrcFun(0x11021, 0, False)
     def __init__(self, dev = None):
         self.write_stop = threading.Event()
         self.write_stop.set()
@@ -113,29 +115,109 @@ class Histb_serial(object):
         self.reader_thr.start()
         return None
 
-    def read_packet(self):
-        """Read a packet, None or the struct will be returned."""
-        ser = self.dev
-        output = b''
-        while True:
-            # printable character, output to screen
-            b = ser.read(1)
-            if int.from_bytes(b, "big") < 0x80:
-                output += b
+
+    def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval = 100, retry_times = 10) -> bytes:
+        """
+        Send a packet periodically and wait for an result frame
+
+        :param data: data send to serial port
+        :param start_byte: the start byte of the returning struct
+        :param length: the length of the returning struct
+        :param interval: resending interval, in msec
+        :param retry_times: max retry times
+        :returns: the packet(excluding the 0xAA checksum)
+        :raises AssertError:
+        :raises TimeoutError:
+        """
+        ret = b''
+        self.dev.timeout = interval / 1e3
+        for i in range(retry_time):
+            self.dev.write(data)
+            try:
+                ret = self.read_packet(start_byte, length, interval)
+            except TimeoutError:
+                pass
+            except Exception as e:
+                raise e
             else:
-                break
-        click.echo(output.decode("utf-8"))
-        if b == b'\xAA':
-            # no struct, return None
-            return None
-        # read until 0xAA
-        # What if crc_code contains 0xAA? Don't know
-        ret = ser.read_until(b'\xAA')
-        # strip off 0xAA
-        packet = (b + ret)[:-1]
-        self.check_crc(packet)
-        # strip off crc code and return
-        return packet[:-2]
+                return ret
+        raise TimeoutError("timeout")
+
+    def send_data_ack(self, data: bytes, interval = 100, retry_times = 10) -> None:
+        """
+        Send a packet periodically and wait for an ACK
+
+        :param data: data send to serial port
+        :param interval: resending interval, in msec
+        :param retry_times: max retry times
+        :returns: None
+        :raises AssertError:
+        :raises TimeoutError:
+        """
+        self.dev.timeout = interval / 1e3
+        for i in range(retry_time):
+            self.dev.write(data)
+            try:
+                self.read_ack(interval)
+            except TimeoutError:
+                pass
+            except Exception as e:
+                raise e
+            else:
+                return None
+        raise TimeoutError("timeout")
+
+    def read_ack(self, timeout = 1000) -> None:
+        """
+        Read an ACK(0xAA).
+
+        :param timeout: timeout in msecs
+        :returns: True - ACK, False - NAK
+        :raises TimeoutError:
+        """
+        ser = self.dev
+        ser.timeout = timeout / 1e3
+
+        data = ser.read_until(b'\xAA')
+
+        if not data.endswith(b'\xAA'):
+            # broken packet or empty
+            sys.stdout.write(data.decode("utf-8"))
+            raise TimeoutError("timeout")
+
+
+    def read_packet(self, start_byte: bytes, length: int, timeout = 1000) -> bytes:
+        """
+        Read a packet.
+
+        :param start_byte: the type(first) byte of the return struct
+        :param timeout: max timeout in msec
+        :param length: the length of the returning struct excluding the 0xAA checksum status indicator
+        :returns: the packet(excluding the 0xAA checksum)
+        :raises AssertError:
+        :raises TimeoutError:
+        """
+        ser = self.dev
+        ser.timeout = timeout / 1e3
+
+        data = ser.read_until(b'\xAA')
+
+        if not data.endswith(b'\xAA'):
+            # broken packet or empty
+            sys.stdout.write(data.decode("utf-8"))
+            raise TimeoutError("timeout")
+
+        msg, delim, payload = data.partition(start_byte)
+        assert delim == start_byte, "start_byte mismatch"
+
+        sys.stdout.write(msg.decode("utf-8"))
+        # strip off trailing 0xAA
+        ret = delim + payload[:-1]
+        assert len(ret) == length, "length mismatch"
+        assert self.crc(ret) == 0, "crc mismatch"
+
+        return ret
+
 
     def wait_boot(self):
         """Waiting for the device to power on"""
