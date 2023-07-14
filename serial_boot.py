@@ -10,6 +10,7 @@ import struct
 import sys
 import threading
 import tqdm
+from dataclasses import dataclass
 from enum import IntEnum
 
 g_pkt_recv = threading.Event() # indicate a packet is received, should be cleared before new packet arrival
@@ -88,6 +89,32 @@ class Packet(object):
         code = packet[0]
         payload = packet[3:-2]
         return cls(code, 0, payload)
+
+
+@dataclass
+class HisiTypeFrameResult(object):
+    """A class representing the returning struct of SendTypeFrame"""
+    CA: bool
+    TEE: bool
+    multiform: bool
+    boot_version: int
+    system_id: int
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> 'HisiTypeFrameResult':
+        """Parse a returned bytes and return Self"""
+        assert len(data) == 14 or len(data) == 15 and data.endswith(b'\xAA'), f"Invalid length, got {len(data)}"
+        if len(data) == 15:
+            data = data[:-1]
+
+        # just ignore checksum, it's already checked
+        start_byte, flags, boot_version, system_id = struct.unpack_from('>B2xB2I2x', data)
+        assert start_byte == 0xBD, f"type mismatch, got {start_byte}"
+
+        CA = flags & 1
+        TEE = flags & 2
+        multiform = flags & 4
+        return cls(CA, TEE, multiform, boot_version, system_id)
 
 
 class Histb_serial(object):
