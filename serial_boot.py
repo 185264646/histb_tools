@@ -26,7 +26,7 @@ class HisiPacketizer(serial.threaded.Packetizer):
 
         # Now we split the packet into 3 parts and do essential checks
         msg, op_result = [], []
-        
+
         is_reading_msg = True # initial state is to read ASCII message
         for i in packet:
             if is_reading_msg and i < 0x80:
@@ -36,7 +36,7 @@ class HisiPacketizer(serial.threaded.Packetizer):
             else:
                 op_result.append(i)
                 is_reading_msg = False # Now we are reading result
-        
+
         msg, op_result = bytes(msg), bytes(op_result)
 
         # First: write msg to stdout
@@ -45,7 +45,7 @@ class HisiPacketizer(serial.threaded.Packetizer):
 
         # Second: parse and process packet
         cls_pkt = Packet.from_bytes(op_result)
-        
+
         # store packet to global variable, and broadcast an event
         global g_pkt_recv, g_ret_data
         if g_pkt_recv.is_set():
@@ -53,7 +53,7 @@ class HisiPacketizer(serial.threaded.Packetizer):
         else:
             g_ret_data = cls_pkt
             g_pkt_recv.set()
-        
+
         return None
 
 
@@ -72,7 +72,7 @@ class Packet(object):
 
     def __str__(self):
         return "Packet: code={}, payload={}".format(self.code, self.payload.hex(sep=' '))
-    
+
     @classmethod
     def from_bytes(cls, packet: bytes):
         """convert bytes to Packet"""
@@ -235,10 +235,10 @@ class Histb_serial(object):
     def get_chip_id(self):
         ser = self.dev
         chip_id_packet = b'\xBD\x00\xFF\x01\x00\x00\x00\x00\x00\x00\x00\x01\x70\x5E'
-        
+
         global g_pkt_recv, g_ret_data
         g_pkt_recv.clear()
-        
+
         # write until new packet received, try 5 times at most
         i = 0
         while not g_pkt_recv.is_set() and i < self.MAX_RETRY_TIMES:
@@ -301,7 +301,7 @@ class Histb_serial(object):
         if not g_pkt_recv.is_set(): # timeout
             raise ValueError("Timeout")
         g_pkt_recv.clear()
-        
+
         return None
 
     def decrypt(self):
