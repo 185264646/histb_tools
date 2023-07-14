@@ -7,6 +7,7 @@ import serial.threaded
 import serial.tools.list_ports
 import serial.tools.miniterm
 import struct
+import sys
 import threading
 import tqdm
 from enum import IntEnum
@@ -92,7 +93,7 @@ class Packet(object):
 class Histb_serial(object):
     INTERVAL = .2 # interval between command resending
     MAX_RETRY_TIMES = 10
-    crc = crcmod.mkCrcFun(0x11021, 0, False)
+
     def __init__(self, dev = None):
         self.write_stop = threading.Event()
         self.write_stop.set()
@@ -108,6 +109,11 @@ class Histb_serial(object):
             # 3 secs is enough, it's good for interrupting the program with Ctrl-C.
             self.dev = serial.Serial(port_list[0].name, 115200, timeout=3)
             logging.debug("using serial device: {}".format(port_list[0].device))
+
+    @staticmethod
+    def _crc(data: bytes):
+        func = crcmod.mkCrcFun(0x11021, 0, False)
+        return func(data)
 
     def init_reader_thread(self):
         """Initialize reader thread"""
@@ -131,7 +137,7 @@ class Histb_serial(object):
         """
         ret = b''
         self.dev.timeout = interval / 1e3
-        for i in range(retry_time):
+        for i in range(retry_times):
             self.dev.write(data)
             try:
                 ret = self.read_packet(start_byte, length, interval)
@@ -155,7 +161,7 @@ class Histb_serial(object):
         :raises TimeoutError:
         """
         self.dev.timeout = interval / 1e3
-        for i in range(retry_time):
+        for i in range(retry_times):
             self.dev.write(data)
             try:
                 self.read_ack(interval)
@@ -192,8 +198,8 @@ class Histb_serial(object):
 
         :param start_byte: the type(first) byte of the return struct
         :param timeout: max timeout in msec
-        :param length: the length of the returning struct excluding the 0xAA checksum status indicator
-        :returns: the packet(excluding the 0xAA checksum)
+        :param length: the length of the returning struct including the 0xAA checksum status indicator
+        :returns: the packet(including the 0xAA checksum)
         :raises AssertError:
         :raises TimeoutError:
         """
@@ -211,10 +217,10 @@ class Histb_serial(object):
         assert delim == start_byte, "start_byte mismatch"
 
         sys.stdout.write(msg.decode("utf-8"))
-        # strip off trailing 0xAA
-        ret = delim + payload[:-1]
+        ret = delim + payload
         assert len(ret) == length, "length mismatch"
-        assert self.crc(ret) == 0, "crc mismatch"
+        # strip off 0xAA suffix before crc
+        assert self._crc(ret[:-1]) == 0, "crc mismatch"
 
         return ret
 
