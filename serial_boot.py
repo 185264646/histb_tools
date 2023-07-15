@@ -250,11 +250,11 @@ class Histb_serial(object):
         logging.info("Device is power on")
         return None
 
-    def get_chip_id(self):
+    def send_type_frame(self):
         ser = self.dev
-        chip_id_packet = b'\xBD\x00\xFF\x01\x00\x00\x00\x00\x00\x00\x00\x01\x70\x5E'
+        packet = b'\xBD\x00\xFF\x01\x00\x00\x00\x00\x00\x00\x00\x01\x70\x5E'
 
-        data = self.send_frame_result(chip_id_packet, b'\xBD', 15)
+        data = self.send_frame_result(packet, b'\xBD', 15)
         result = HisiTypeFrameResult.from_bytes(data)
         return result
 
@@ -284,13 +284,10 @@ class Histb_serial(object):
 
         return None
 
-    def decrypt(self):
-        """send decrypt request"""
-        # The algorithm to calc the key is currently unknown, hardcode it temporarily
-        global g_pkt_recv, g_ret_data
-        i = 0
-        decrypt_payload = b'\xCE\x00\xFF\x01\x12\x34\x56\x78\x12\x34\x56\x78\x9D\xFB'
-        self.send_frame_result(decrypt_payload, b'\xCE', 11)
+    def send_board_frame(self):
+        """send board frame"""
+        payload = b'\xCE\x00\xFF\x01\x12\x34\x56\x78\x12\x34\x56\x78\x9D\xFB'
+        self.send_frame_result(payload, b'\xCE', 11)
         return None
 
 def module_print(s: str):
@@ -313,17 +310,17 @@ def cli(fastboot_image, debug, terminal):
     dev = Histb_serial()
     dev.wait_boot()
     module_print("Device is power on")
-    module_print("Phase 1: get chip id")
-    chip_id = dev.get_chip_id()
-    module_print("Phase 1: chip id: {}".format(chip_id))
-    logging.info("chip_id is: {}".format(chip_id))
+    module_print("Phase 1: send type frame")
+    type_frame = dev.send_type_frame()
+    module_print("Phase 1: board info: {}".format(type_frame))
+    logging.info("board info: {}".format(type_frame))
     module_print("Phase 2: send head area")
     dev.send_file(bootimg.headarea, 0)
     module_print("Phase 3: send aux area")
     dev.send_file(bootimg.auxcode, bootimg.auxcode_addr)
-    module_print("Phase 4: decrypt aux area")
-    dev.decrypt()
-    module_print("Phase 5: send bootreg0.bin")
+    module_print("Phase 4: send board frame")
+    dev.send_board_frame()
+    module_print("Phase 5: resend param area")
     dev.send_file(bootimg.bootreg_def, bootimg.bootregs_addr)
     module_print("Phase 6: send fastboot image")
     dev.send_file(bootimg.image, 0)
