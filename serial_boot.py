@@ -296,29 +296,9 @@ class Histb_serial(object):
         ser = self.dev
         chip_id_packet = b'\xBD\x00\xFF\x01\x00\x00\x00\x00\x00\x00\x00\x01\x70\x5E'
 
-        global g_pkt_recv, g_ret_data
-        g_pkt_recv.clear()
-
-        # write until new packet received, try 5 times at most
-        i = 0
-        while not g_pkt_recv.is_set() and i < self.MAX_RETRY_TIMES:
-            self.reader_thr.write(bytes(chip_id_packet))
-            logging.debug("Writing get_chip_id packet: {}".format(chip_id_packet.hex()))
-            g_pkt_recv.wait(self.INTERVAL)
-            i+=1
-
-        if not g_pkt_recv.is_set():
-            logging.fatal("get_chip_id timeout! Check your TX->RX connection.")
-            raise ValueError("Timeout")
-
-        # parse struct
-        instruction = g_ret_data.code
-        logging.info("get_chip_id: got a packet: {}".format(g_ret_data))
-        sub_instruction, chip_id = struct.unpack(">c8s", g_ret_data.payload)
-        g_pkt_recv.clear()
-        assert(instruction == 0xBD)
-        assert(sub_instruction == b'\x08')
-        return chip_id
+        data = self.send_frame_result(chip_id_packet, b'\xBD', 15)
+        result = HisiTypeFrameResult.from_bytes(data)
+        return result
 
     def send_file(self, b: bytes, offset: int):
         # split it into 1KB blocks, append to kb first
@@ -331,36 +311,18 @@ class Histb_serial(object):
         logging.debug("Sending file at {:#x}, length = {:#x}".format(offset, len(b)))
         # send first packet
         logging.debug("Phase 1 of 3")
-        global g_pkt_recv
-        i = 0
-        while not g_pkt_recv.is_set() and i < self.MAX_RETRY_TIMES:
-            pkt = Packet(0xFE, pkt_index, pkt_begin)
-            self.reader_thr.write(bytes(pkt))
-            logging.debug("Sending packet: {}".format(pkt))
-            g_pkt_recv.wait(self.INTERVAL)
-            i+=1
-        if not g_pkt_recv.is_set(): # Timeout
-            raise ValueError("Timeout")
-        g_pkt_recv.clear()
+        self.send_data_ack(bytes(Packet(0xFE, pkt_index, pkt_begin)))
 
         # send file
         logging.debug("Phase 2 of 3")
         for i in tqdm.tqdm(pkt_lst):
             pkt_index=(pkt_index+1)%256
-            self.reader_thr.write(bytes(Packet(0xDA, pkt_index, i)))
-            g_pkt_recv.wait(.5) # 0.5 sec should be enough
-            if not g_pkt_recv.is_set(): # timeout
-                raise ValueError("Timeout")
-            g_pkt_recv.clear()
+            self.send_data_ack(bytes(Packet(0xDA, pkt_index, i)))
 
         # end of transfer
         logging.debug("Phase 3 of 3")
         pkt_index=(pkt_index+1)%256
-        self.reader_thr.write(bytes(Packet(0xED, pkt_index, b'')))
-        g_pkt_recv.wait(.5)
-        if not g_pkt_recv.is_set(): # timeout
-            raise ValueError("Timeout")
-        g_pkt_recv.clear()
+        self.send_data_ack(bytes(Packet(0xED, pkt_index, b'')))
 
         return None
 
@@ -369,20 +331,8 @@ class Histb_serial(object):
         # The algorithm to calc the key is currently unknown, hardcode it temporarily
         global g_pkt_recv, g_ret_data
         i = 0
-        # Hubei HC2910
-        # decrypt_payload = b'\x01\x00\x09\xBB\x96\x00\x09\xBB\x96'
-        # Henan HC2910
-        decrypt_payload = b'\x01\x00\x07\xf8\x2e\x00\x07\xf8\x2e'
-        while not g_pkt_recv.is_set() and i < self.MAX_RETRY_TIMES:
-            pkt = Packet(0xCE, 0, decrypt_payload)
-            self.reader_thr.write(bytes(pkt))
-            logging.debug("Sending packet: {}".format(pkt))
-            g_pkt_recv.wait(self.INTERVAL)
-            i+=1
-        if not g_pkt_recv.is_set(): # Timeout
-            raise ValueError("Timeout")
-        assert(g_ret_data.payload.startswith(b'\x04\x00')) # Decrypt success
-        g_pkt_recv.clear()
+        decrypt_payload = b'\xCE\x00\xFF\x01\x12\x34\x56\x78\x12\x34\x56\x78\x9D\xFB'
+        self.send_frame_result(decrypt_payload, b'\xCE', 11)
         return None
 
 def module_print(s: str):
@@ -405,11 +355,10 @@ def cli(fastboot_image, debug, terminal):
     dev = Histb_serial()
     dev.wait_boot()
     module_print("Device is power on")
-    dev.init_reader_thread()
     module_print("Phase 1: get chip id")
     chip_id = dev.get_chip_id()
-    module_print("Phase 1: chip id: {}".format(chip_id.hex()))
-    logging.info("chip_id is: {}".format(chip_id.hex()))
+    module_print("Phase 1: chip id: {}".format(chip_id))
+    logging.info("chip_id is: {}".format(chip_id))
     module_print("Phase 2: send head area")
     dev.send_file(bootimg.headarea, 0)
     module_print("Phase 3: send aux area")
@@ -421,8 +370,6 @@ def cli(fastboot_image, debug, terminal):
     module_print("Phase 6: send fastboot image")
     dev.send_file(bootimg.image, 0)
     module_print("End: Stop all threads")
-    dev.reader_thr.stop()
-    dev.reader_thr.join()
     if terminal:
         module_print("Use Ctrl+] to exit, Ctrl+H Ctrl+T shows help")
         term = serial.tools.miniterm.Miniterm(dev.dev, eol="lf")
