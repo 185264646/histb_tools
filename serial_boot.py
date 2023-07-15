@@ -13,8 +13,10 @@ import tqdm
 from dataclasses import dataclass
 from enum import IntEnum
 
+
 class Packet(object):
     crc = crcmod.mkCrcFun(0x11021, 0, False)
+
     def __init__(self, function_code: int, seq: int, payload: bytes):
         self.code = function_code
         self.seq = seq
@@ -99,13 +101,13 @@ class HisiBoardFrameResult(object):
 
 
 class HistbSerial(object):
-    INTERVAL = .2 # interval between command resending
+    INTERVAL = .2  # interval between command resending
     MAX_RETRY_TIMES = 10
 
-    def __init__(self, dev = None):
+    def __init__(self, dev=None):
         self.write_stop = threading.Event()
         self.write_stop.set()
-        self.write_data=None
+        self.write_data = None
         if dev:
             self.dev = dev
         else:
@@ -123,7 +125,7 @@ class HistbSerial(object):
         func = crcmod.mkCrcFun(0x11021, 0, False)
         return func(data)
 
-    def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval = 200, retry_times = 10) -> bytes:
+    def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval=200, retry_times=10) -> bytes:
         """
         Send a packet periodically and wait for an result frame
 
@@ -150,7 +152,7 @@ class HistbSerial(object):
                 return ret
         raise TimeoutError("timeout")
 
-    def send_data_ack(self, data: bytes, interval = 100, retry_times = 10) -> None:
+    def send_data_ack(self, data: bytes, interval=100, retry_times=10) -> None:
         """
         Send a packet periodically and wait for an ACK
 
@@ -174,7 +176,7 @@ class HistbSerial(object):
                 return None
         raise TimeoutError("timeout")
 
-    def read_ack(self, timeout = 1000) -> None:
+    def read_ack(self, timeout=1000) -> None:
         """
         Read an ACK(0xAA).
 
@@ -193,8 +195,7 @@ class HistbSerial(object):
             raise TimeoutError("timeout")
         sys.stdout.write(data[:-1].decode("utf-8"))
 
-
-    def read_packet(self, start_byte: bytes, length: int, timeout = 1000) -> bytes:
+    def read_packet(self, start_byte: bytes, length: int, timeout=1000) -> bytes:
         """
         Read a packet.
 
@@ -236,7 +237,6 @@ class HistbSerial(object):
 
         return ret
 
-
     def wait_boot(self):
         """Waiting for the device to power on"""
         # read bootrom message and return
@@ -261,8 +261,8 @@ class HistbSerial(object):
     def send_file(self, b: bytes, offset: int):
         # split it into 1KB blocks, append to kb first
         if len(b) % 1024:
-            b+=bytes(1024 - (len(b)%1024))
-        pkt_lst = [ b[i:i+1024] for i in range(0, len(b), 1024) ]
+            b += bytes(1024 - (len(b) % 1024))
+        pkt_lst = [b[i:i + 1024] for i in range(0, len(b), 1024)]
         pkt_index = 0
         pkt_begin = struct.pack(">cii", b'\x01', len(b), offset)
 
@@ -274,12 +274,12 @@ class HistbSerial(object):
         # send file
         logging.debug("Phase 2 of 3")
         for i in tqdm.tqdm(pkt_lst):
-            pkt_index=(pkt_index+1)%256
+            pkt_index = (pkt_index + 1) % 256
             self.send_data_ack(bytes(Packet(0xDA, pkt_index, i)))
 
         # end of transfer
         logging.debug("Phase 3 of 3")
-        pkt_index=(pkt_index+1)%256
+        pkt_index = (pkt_index + 1) % 256
         self.send_data_ack(bytes(Packet(0xED, pkt_index, b'')))
 
         return None
@@ -290,13 +290,17 @@ class HistbSerial(object):
         self.send_frame_result(payload, b'\xCE', 11)
         return None
 
+
 def module_print(s: str):
-    print("serial_boot: "+s)
+    print("serial_boot: " + s)
+
 
 @click.command()
 @click.argument("fastboot_image", required=True, type=click.File("rb"))
-@click.option("--debug", "-d", "debug", type=bool, required=False, default=False, is_flag=True, help="Enable debug mode")
-@click.option("--terminal", "-t", "terminal", type=bool, required=False, default=False, is_flag=True, help="Open a terminal when completed")
+@click.option("--debug", "-d", "debug", type=bool, required=False, default=False, is_flag=True,
+              help="Enable debug mode")
+@click.option("--terminal", "-t", "terminal", type=bool, required=False, default=False, is_flag=True,
+              help="Open a terminal when completed")
 def cli(fastboot_image, debug, terminal):
     if debug:
         logger = logging.getLogger()
