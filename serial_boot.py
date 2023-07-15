@@ -244,6 +244,7 @@ class Histb_serial(object):
             # broken packet or empty
             sys.stdout.write(data.decode("utf-8"))
             raise TimeoutError("timeout")
+        sys.stdout.write(data[:-1].decode("utf-8"))
 
 
     def read_packet(self, start_byte: bytes, length: int, timeout = 1000) -> bytes:
