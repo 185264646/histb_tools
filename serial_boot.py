@@ -98,7 +98,7 @@ class HisiBoardFrameResult(object):
         return cls(unk_1)
 
 
-class Histb_serial(object):
+class HistbSerial(object):
     INTERVAL = .2 # interval between command resending
     MAX_RETRY_TIMES = 10
 
@@ -307,7 +307,7 @@ def cli(fastboot_image, debug, terminal):
     bootimg.extract_images()
     logging.info(bootimg)
 
-    dev = Histb_serial()
+    dev = HistbSerial()
     dev.wait_boot()
     module_print("Device is power on")
     module_print("Phase 1: send type frame")
