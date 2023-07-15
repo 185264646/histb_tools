@@ -3,21 +3,22 @@
 import logging
 import os
 
+
 class Fastboot_image(object):
     def __init__(self, file):
-        self.image=None
-        self.auxcode_addr=0
-        self.auxcode_size=0
-        self.auxcode=None
-        self.bootreg_size=0
-        self.bootreg_def=None
-        self.bootreg_def_addr=0
-        self.bootregs_addr=0
-        self.bootregs=[]
-        self.headarea_size=0
-        self.headarea=None
-        self.auxarea_size=0
-        self.extracted=False
+        self.image = None
+        self.auxcode_addr = 0
+        self.auxcode_size = 0
+        self.auxcode = None
+        self.bootreg_size = 0
+        self.bootreg_def = None
+        self.bootreg_def_addr = 0
+        self.bootregs_addr = 0
+        self.bootregs = []
+        self.headarea_size = 0
+        self.headarea = None
+        self.auxarea_size = 0
+        self.extracted = False
         self.image = file.read()
         length = len(self.image)
         if length > 0x200000 or length < 0xF000:
@@ -43,10 +44,10 @@ class Fastboot_image(object):
 
         # Fill in bootreg default fields
         self.bootreg_size = int.from_bytes(self.image[0x2FE8:0x2FEC], "little")
-        self.bootreg_def_addr = 0x480 # Fixed to 0x480
+        self.bootreg_def_addr = 0x480  # Fixed to 0x480
 
         # Fill in bootregs address
-        self.bootregs_addr =int.from_bytes(self.image[0x2FE4:0x2FE8], "little")
+        self.bootregs_addr = int.from_bytes(self.image[0x2FE4:0x2FE8], "little")
         return None
 
     def extract_images(self):
@@ -58,7 +59,7 @@ class Fastboot_image(object):
         self.bootreg_def = self.image[self.bootreg_def_addr:bootreg_def_end]
 
         # begin to extract bootregs
-        for i in range(8): # No more than 8 bootregs
+        for i in range(8):  # No more than 8 bootregs
             begin_addr = self.bootregs_addr + i * self.bootreg_size
             end_addr = self.bootregs_addr + (i + 1) * self.bootreg_size
             temp = self.image[begin_addr:end_addr]
@@ -70,7 +71,8 @@ class Fastboot_image(object):
         if len(self.bootregs) and (self.bootregs[0] != self.bootreg_def):
             # default bootreg is not identical to the first item in bootreg_list
             # output a warning
-            logging.warn("bootreg in Param Area is not identical to the first item in bootreg_list, image might have corrupted")
+            logging.warn(
+                "bootreg in Param Area is not identical to the first item in bootreg_list, image might have corrupted")
         self.extracted = True
         return None
 
@@ -79,7 +81,7 @@ class Fastboot_image(object):
             return None
         self.auxcode = self.auxcode.rstrip(b'\x00')
         self.bootreg_def = self.bootreg_def.rstrip(b'\x00')
-        self.bootregs = [ i.rstrip(b'\x00') for i in self.bootregs ]
+        self.bootregs = [i.rstrip(b'\x00') for i in self.bootregs]
         return None
 
     def write_to_directory(self, path: str):
