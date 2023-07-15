@@ -212,7 +212,7 @@ class HistbSerial(object):
 
         msg, delim, payload = data.partition(start_byte)
         # There are 3 situations here:
-        # 1. nothing except msg is recieved, raise Timeout
+        # 1. nothing except msg is received, raise Timeout
         # 2. delim found but no 0xAA ending, a partial packet, wait for a little more time to wait for it to finish
         # 3. All good
         if delim == b'':
