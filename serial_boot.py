@@ -88,7 +88,7 @@ class HisiBoardFrameResult(object):
 
     @classmethod
     def from_bytes(cls, b: bytes) -> 'HisiBoardFrameResult':
-        assert len(b) == 10 or len(b) == 11 and b.endswith(b'\xAA'), f"Invalid length, got {len(data)}"
+        assert len(b) == 10 or len(b) == 11 and b.endswith(b'\xAA'), f"Invalid length, got {len(b)}"
         if len(b) == 11:
             b = b[:-1]
 
