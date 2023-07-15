@@ -91,6 +91,15 @@ class Packet(object):
         return cls(code, 0, payload)
 
 
+class HisiPacketType(IntEnum):
+    """Various enum used as packet type"""
+    TypeFrame = 0xBD
+    HeadFrame = 0xFE
+    DataFrame = 0xDA
+    TailFrame = 0xED
+    BoardFrame = 0xCE
+
+
 @dataclass
 class HisiTypeFrameResult(object):
     """A class representing the returning struct of SendTypeFrame"""
