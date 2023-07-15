@@ -126,6 +126,24 @@ class HisiTypeFrameResult(object):
         return cls(CA, TEE, multiform, boot_version, system_id)
 
 
+@dataclass
+class HisiBoardFrameResult(object):
+    """A class representing the returned struct of SendBoardFrame"""
+    # There should be some other flags returned, but not documented
+    unk_1: int
+
+    @classmethod
+    def from_bytes(cls, b: bytes) -> 'HisiBoardFrameResult':
+        assert len(b) == 10 or len(b) == 11 and b.endswith(b'\xAA'), f"Invalid length, got {len(data)}"
+        if len(b) == 11:
+            b = b[:-1]
+
+        start_byte, unk_1 = struct.unpack('>B3xI2x')
+        assert start_byte == 0xCE, f"type mismatch, got {start_byte}"
+
+        return cls(unk_1)
+
+
 class Histb_serial(object):
     INTERVAL = .2 # interval between command resending
     MAX_RETRY_TIMES = 10
