@@ -2,7 +2,6 @@
 
 import click
 import crcmod
-import image
 import logging
 import serial
 import serial.threaded
@@ -14,6 +13,8 @@ import threading
 import tqdm
 from dataclasses import dataclass
 from enum import IntEnum
+
+import image
 
 
 class Packet(object):
