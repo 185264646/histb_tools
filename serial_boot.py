@@ -333,7 +333,7 @@ def cli(fastboot_image, debug, terminal):
         term = serial.tools.miniterm.Miniterm(dev.dev, eol="lf")
         term.set_tx_encoding("utf-8")
         term.set_rx_encoding("utf-8")
-        click.echo(dev.dev.read_all())
+        sys.stdout.write(dev.dev.read_all().decode("utf-8"))
         term.start()
         term.join()
     return None
