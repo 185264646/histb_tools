@@ -5,7 +5,7 @@
 
 import click
 import os
-from image import Fastboot_image
+from image import FastbootImageV1
 
 
 @click.command()
@@ -17,7 +17,7 @@ def extract(filename, p, d, e):
     """
     A tool to extract some essential binaries for l-loader from stock firmware
     """
-    i = Fastboot_image(filename)
+    i = FastbootImageV1(filename)
     i.parse_image()
     i.extract_images()
     if e:

@@ -304,7 +304,7 @@ def cli(fastboot_image, debug, terminal):
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
     # parse boot image
-    bootimg = image.Fastboot_image(fastboot_image)
+    bootimg = image.FastbootImageV1(fastboot_image)
     bootimg.parse_image()
     bootimg.extract_images()
     logging.info(bootimg)

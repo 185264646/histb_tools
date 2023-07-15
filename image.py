@@ -4,7 +4,7 @@ import logging
 import os
 
 
-class Fastboot_image(object):
+class FastbootImageV1(object):
     def __init__(self, file):
         self.image = None
         self.auxcode_addr = 0
