@@ -127,7 +127,7 @@ class HistbSerial(object):
 
     def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval=200, retry_times=10) -> bytes:
         """
-        Send a packet periodically and wait for an result frame
+        Send a packet periodically and wait for a result frame
 
         :param data: data send to serial port
         :param start_byte: the start byte of the returning struct
