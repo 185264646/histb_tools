@@ -49,7 +49,7 @@ struct hisi_chip_info {
 	
 // sizeof(struct hisi_chip_info) == 11
 ```
-获取芯片信息，根据逆向结果，至少包含`boot version, CA, TEE, Multi Form, system id`五项，具体含义未知
+获取芯片信息，根据逆向结果，至少包含`boot version, CA, TEE, Multi Form, system id`五项，具体含义未知<br>
 看起来这五项都会影响整个串口下载流程和包的结构
 
 ## SendHeadData()
@@ -63,12 +63,12 @@ struct hisi_board_frame_ret {
 	u32 unknown_data;
 } __pack__(1);
 ```
-传输Param Area。分成两步：SendBoardFrame()和SendParamArea()
+传输Param Area。分成两步：SendBoardFrame()和SendParamArea()<br>
 ParamArea用文件形式传，偏移量算法未知，似乎与SendBoardFrame的返回值有关，建议直接从image中读取
 ## SendBoot()
 按文件传完整个Boot，偏移量为0
 ## 文件传输 SendFile()
-需要传递两个参数，偏移量offset和长度length，取值根据情况而定
+需要传递两个参数，偏移量offset和长度length，取值根据情况而定<br>
 分为三步，每个包发完后序号要递增，到256后自动wrap回0
 ### SendHeadFrame()
 ### SendDataFrame()
