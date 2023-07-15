@@ -94,7 +94,7 @@ class HisiBoardFrameResult(object):
         if len(b) == 11:
             b = b[:-1]
 
-        start_byte, unk_1 = struct.unpack('>B3xI2x')
+        start_byte, unk_1 = struct.unpack('>B3xI2x', b)
         assert start_byte == 0xCE, f"type mismatch, got {start_byte}"
 
         return cls(unk_1)
