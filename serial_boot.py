@@ -138,7 +138,6 @@ class HistbSerial(object):
         :raises AssertError:
         :raises TimeoutError:
         """
-        ret = b''
         self.dev.timeout = interval / 1e3
         for i in range(retry_times):
             self.dev.write(data)
@@ -251,7 +250,6 @@ class HistbSerial(object):
         return None
 
     def send_type_frame(self):
-        ser = self.dev
         packet = b'\xBD\x00\xFF\x01\x00\x00\x00\x00\x00\x00\x00\x01\x70\x5E'
 
         data = self.send_frame_result(packet, b'\xBD', 15)
