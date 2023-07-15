@@ -13,52 +13,6 @@ import tqdm
 from dataclasses import dataclass
 from enum import IntEnum
 
-g_pkt_recv = threading.Event() # indicate a packet is received, should be cleared before new packet arrival
-g_ret_data = None # data returned by thread, is set by Packet.process()
-
-class HisiPacketizer(serial.threaded.Packetizer):
-    TERMINATOR = b'\xAA' # TODO: handle 0x55('U'), indicating CRC mismatch
-
-    def handle_packet(self, packet):
-        logging.debug("packet received: {}".format(packet.hex()))
-        # a packet has 3 parts:
-        # 1. printable ASCII message(optional): simply output to stdout
-        # 2. operation result(optional): start with a non-ASCII byte, can be parsed with Packet.from_bytes()
-        # 3. terminator: 0xAA
-
-        # Now we split the packet into 3 parts and do essential checks
-        msg, op_result = [], []
-
-        is_reading_msg = True # initial state is to read ASCII message
-        for i in packet:
-            if is_reading_msg and i < 0x80:
-                msg.append(i)
-            elif i == 0xAA:
-                break
-            else:
-                op_result.append(i)
-                is_reading_msg = False # Now we are reading result
-
-        msg, op_result = bytes(msg), bytes(op_result)
-
-        # First: write msg to stdout
-        if msg != b'':
-            click.echo(msg.decode("ascii"))
-
-        # Second: parse and process packet
-        cls_pkt = Packet.from_bytes(op_result)
-
-        # store packet to global variable, and broadcast an event
-        global g_pkt_recv, g_ret_data
-        if g_pkt_recv.is_set():
-            raise ValueError("A new packet is received with previous packet not processed")
-        else:
-            g_ret_data = cls_pkt
-            g_pkt_recv.set()
-
-        return None
-
-
 class Packet(object):
     crc = crcmod.mkCrcFun(0x11021, 0, False)
     def __init__(self, function_code: int, seq: int, payload: bytes):
@@ -168,13 +122,6 @@ class Histb_serial(object):
     def _crc(data: bytes):
         func = crcmod.mkCrcFun(0x11021, 0, False)
         return func(data)
-
-    def init_reader_thread(self):
-        """Initialize reader thread"""
-        self.reader_thr = serial.threaded.ReaderThread(self.dev, HisiPacketizer)
-        self.reader_thr.start()
-        return None
-
 
     def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval = 200, retry_times = 10) -> bytes:
         """
