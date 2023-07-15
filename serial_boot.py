@@ -329,7 +329,6 @@ def cli(fastboot_image, debug, terminal):
     dev.send_file(bootimg.bootreg_def, bootimg.bootregs_addr)
     module_print("Phase 6: send fastboot image")
     dev.send_file(bootimg.image, 0)
-    module_print("End: Stop all threads")
     if terminal:
         module_print("Use Ctrl+] to exit, Ctrl+H Ctrl+T shows help")
         term = serial.tools.miniterm.Miniterm(dev.dev, eol="lf")
