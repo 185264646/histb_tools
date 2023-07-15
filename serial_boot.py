@@ -176,7 +176,7 @@ class Histb_serial(object):
         return None
 
 
-    def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval = 100, retry_times = 10) -> bytes:
+    def send_frame_result(self, data: bytes, start_byte: bytes, length: int, interval = 200, retry_times = 10) -> bytes:
         """
         Send a packet periodically and wait for an result frame
 
