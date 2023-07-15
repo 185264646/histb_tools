@@ -24,7 +24,6 @@ class Fastboot_image(object):
         if length > 0x200000 or length < 0xF000:
             # reject image larger than 2M or smaller than 56K
             raise ValueError("Image too big or too small")
-        return None
 
     def __str__(self):
         ret = []
