@@ -119,8 +119,7 @@ class HistbSerial(object):
             if len(port_list) != 1:
                 logging.error("zero or multiple com ports found, please specify the COM port")
                 raise ValueError('Zero or multiple com ports found')
-            # 3 secs is enough, it's good for interrupting the program with Ctrl-C.
-            self.dev = serial.Serial(port_list[0].name, 115200, timeout=3)
+            self.dev = serial.Serial(port_list[0].name, 115200, timeout=.5)
             logging.debug("using serial device: {}".format(port_list[0].device))
 
     @staticmethod
