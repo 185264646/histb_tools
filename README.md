@@ -22,5 +22,14 @@ sudo apt install -y python3-serial python3-click python3-crcmod python3-tqdm
 pip install -r requirements.txt
 ```
 
+# Note
+- supports only non-CA SoCs. (This repo will not work if CA is enabled)
+- supports only fastboot.bin version 1. (Most Hi3798xxx SoCs fall into this category)
+
+# Tested SoCs
+- Hi3798MV200
+- Hi3798MV300
+Most Hi3798xxx SoCs should also work
+
 # License
 GPL-2.0-or-later
