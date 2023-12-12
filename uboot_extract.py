@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+# SPDX-License-Specifier: GPL-2.0-or-later
+# Copyright 2023 Yang Xiwen
 
 # Extract essential binaries from stock u-boot
 # AUXCODE.img, BOOT[0-2].reg etc

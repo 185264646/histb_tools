@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+# SPDX-License-Specifier: GPL-2.0-or-later
+# Copyright 2023 Yang Xiwen
 
 import click
 import crcmod
